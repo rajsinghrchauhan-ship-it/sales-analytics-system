@@ -1,55 +1,88 @@
-# %% [markdown]
-# **File Format**:
-# 
-# - Pipe-delimited (`|`) format
-# - **Non-UTF-8 encoding** (you'll need to handle encoding issues)
-# - Contains **data quality issues**:
-#     - Some fields have comma-separated values within them
-#     - Some rows may have missing or extra fields
-#     - Some numeric values may have formatting issues (commas in numbers)
-#     - Some records have invalid data (zero quantities, negative prices, wrong ID formats)
-
-# %% [markdown]
-# #### Read Sales Data with Encoding Handling
-
-# %%
 import csv
 from pathlib import Path
+import os
 
-# %%
+# Current file location
+CURRENT_DIR = Path(__file__).resolve().parent
+
+# Project root directory
+PROJECT_ROOT = CURRENT_DIR.parent
+
+# Standard project folders
+DATA_DIR = PROJECT_ROOT / "data"
+ETL_DIR = PROJECT_ROOT / "utils"
+
+"""
+Reads sales data from file handling encoding issues
+
+Returns: list of raw lines (strings)
+
+Expected Output Format:
+['T001|2024-12-01|P101|Laptop|2|45000|C001|North', ...]
+
+Requirements:
+- Use 'with' statement
+- Handle different encodings (try 'utf-8', 'latin-1', 'cp1252')
+- Handle FileNotFoundError with appropriate error message
+- Skip the header row
+- Remove empty lines
+"""
+
+
 def read_sales_data(filename, file_encoder):
-    data = []
     try:
-        with open(filename, mode='r', encoding=file_encoder, newline='\n') as file:
+        data = []
+        with open(file= filename, mode='r', encoding=file_encoder, newline='\n',) as file:
             file_content = csv.reader(file, delimiter='|')
-            header = next(file_content, None)
+
+            header = next(file_content, None)  # skip header
 
             for row in file_content:
                 if row and any(field.strip() for field in row):
                     data.append('|'.join(row))
+        
         return data
-
-    except UnicodeDecodeError:
+    except UnicodeEncodeError:
         print(f'{filename} file is not in UTF-8 encoding')
         return data
     except FileNotFoundError:
         print(f'{filename} file does not exist.')
         return data
+    
 
-# %%
-BASE_DIR = Path.cwd().parent   # sales-analytics-system
-file_path = BASE_DIR / 'data' / 'sales_data.txt'
 
-# %%
-a = read_sales_data(file_path,'utf-8')
+"""
+Parses raw lines into clean list of dictionaries
 
-# %%
-first_row = a[0].split('|')
+Returns: list of dictionaries with keys:
+['TransactionID', 'Date', 'ProductID', 'ProductName',
+    'Quantity', 'UnitPrice', 'CustomerID', 'Region']
 
-# %%
-first_row
+Expected Output Format:
+[
+    {
+        'TransactionID': 'T001',
+        'Date': '2024-12-01',
+        'ProductID': 'P101',
+        'ProductName': 'Laptop',
+        'Quantity': 2,           # int type
+        'UnitPrice': 45000.0,    # float type
+        'CustomerID': 'C001',
+        'Region': 'North'
+    },
+    ...
+]
 
-# %%
+Requirements:
+- Split by pipe delimiter '|'
+- Handle commas within ProductName (remove or replace)
+- Remove commas from numeric fields and convert to proper types
+- Convert Quantity to int
+- Convert UnitPrice to float
+- Skip rows with incorrect number of fields
+"""
+
+
 def parse_transactions(raw_line):
 
     data = []
@@ -84,10 +117,46 @@ def parse_transactions(raw_line):
 
     return data
 
-# %%
-a
 
-# %%
+"""
+Validates transactions and applies optional filters
+
+Parameters:
+- transactions: list of transaction dictionaries
+- region: filter by specific region (optional)
+- min_amount: minimum transaction amount (Quantity * UnitPrice) (optional)
+- max_amount: maximum transaction amount (optional)
+
+Returns: tuple (valid_transactions, invalid_count, filter_summary)
+
+Expected Output Format:
+(
+    [list of valid filtered transactions],
+    5,  # count of invalid transactions
+    {
+        'total_input': 100,
+        'invalid': 5,
+        'filtered_by_region': 20,
+        'filtered_by_amount': 10,
+        'final_count': 65
+    }
+)
+
+Validation Rules:
+- Quantity must be > 0
+- UnitPrice must be > 0
+- All required fields must be present
+- TransactionID must start with 'T'
+- ProductID must start with 'P'
+- CustomerID must start with 'C'
+
+Filter Display:
+- Print available regions to user before filtering
+- Print transaction amount range (min/max) to user
+- Show count of records after each filter applied
+"""
+
+
 def validate_and_filter(transactions, region=None, min_amount=None, max_amount=None):
     """
     Validates transactions and applies optional filters
@@ -192,27 +261,9 @@ def validate_and_filter(transactions, region=None, min_amount=None, max_amount=N
     filter_summary = {
         "total_input": total_input,
         "invalid": invalid_count,
-        "valid_records": len(valid_transactions),
         "filtered_by_region": filtered_by_region,
         "filtered_by_amount": filtered_by_amount,
         "final_count": len(current)
     }
 
     return current, filter_summary
-
-# %%
-first_row = parse_transactions(a)
-
-# %%
-clean_data = parse_transactions(a)
-
-# %%
-clean_data, summary_data = validate_and_filter(clean_data,'North', 300, 5000)
-
-# %%
-summary_data
-
-# %%
-clean_data
-
-
