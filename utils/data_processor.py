@@ -1,11 +1,9 @@
-"""
-Calculates total revenue from all transactions
 
-Returns: float (total revenue)
+# utils/data_processor.py
 
-Expected Output: Single number representing sum of (Quantity * UnitPrice)
-Example: 1545000.50
-"""
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 def calculate_total_revenue(transactions):
     """
@@ -286,4 +284,3 @@ def low_performing_products(transactions, threshold=10):
 
     low_products_sorted = sorted(low_products, key=lambda x: x[1])
     return low_products_sorted
-

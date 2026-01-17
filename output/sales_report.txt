@@ -1,0 +1,49 @@
+============================================
+       SALES ANALYTICS REPORT
+     Generated: 2026-01-17 22:18:24
+     Records Processed: 0
+============================================
+
+OVERALL SUMMARY
+--------------------------------------------
+Total Revenue:        ₹0.00
+Total Transactions:   0
+Average Order Value:  ₹0.00
+Date Range:           N/A
+
+REGION-WISE PERFORMANCE
+--------------------------------------------
+Region              Sales  % of Total  Transactions
+No region data available.
+
+TOP 5 PRODUCTS
+--------------------------------------------
+Rank  Product Name           Quantity Sold       Revenue
+No product data available.
+
+TOP 5 CUSTOMERS
+--------------------------------------------
+Rank  Customer ID      Total Spent Order Count
+No customer data available.
+
+DAILY SALES TREND
+--------------------------------------------
+Date               Revenue  Transactions  Unique Customers
+No daily trend data available.
+
+PRODUCT PERFORMANCE ANALYSIS
+--------------------------------------------
+Best Selling Day: N/A
+Low Performing Products: None
+
+Average Transaction Value per Region
+No region averages available.
+
+API ENRICHMENT SUMMARY
+--------------------------------------------
+Total records checked for enrichment: 0
+Successful enrichments:              0
+Success rate:                       0.00%
+
+Products that couldn't be enriched:
+- None

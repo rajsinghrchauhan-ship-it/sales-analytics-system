@@ -1,13 +1,9 @@
+
 # %% [markdown]
-# **File Format**:
-# 
+# **File Format**
 # - Pipe-delimited (`|`) format
-# - **Non-UTF-8 encoding** (you'll need to handle encoding issues)
-# - Contains **data quality issues**:
-#     - Some fields have comma-separated values within them
-#     - Some rows may have missing or extra fields
-#     - Some numeric values may have formatting issues (commas in numbers)
-#     - Some records have invalid data (zero quantities, negative prices, wrong ID formats)
+# - Non-UTF-8 encoding (handle encoding issues)
+# - Data quality issues (commas in fields, missing/extra fields, numeric commas, invalid data)
 
 # %% [markdown]
 # #### Read Sales Data with Encoding Handling
@@ -16,52 +12,74 @@
 import csv
 from pathlib import Path
 
+# Current file location
+CURRENT_DIR = Path(__file__).resolve().parent
+
+# Project root directory
+PROJECT_ROOT = CURRENT_DIR.parent
+file_path = PROJECT_ROOT / "data" / "sales_data.txt"
+
 # %%
-def read_sales_data(filename, file_encoder):
+def read_sales_data(filename):
+    """
+    Reads sales data handling encoding issues and skipping header/empty lines.
+    Tries multiple encodings: 'utf-8', 'latin-1', 'cp1252'.
+    Returns: list[str] of raw lines with '|' still joining fields.
+    """
+    encodings_to_try = ['utf-8', 'latin-1', 'cp1252']
+    last_error = None
+
+    for enc in encodings_to_try:
+        try:
+            data = []
+            # IMPORTANT: keep newline='' for csv module
+            with open(filename, mode='r', encoding=enc, newline='') as file:
+                reader = csv.reader(file, delimiter='|')
+                _ = next(reader, None)  # skip header if present
+                for row in reader:
+                    if row and any((field or "").strip() for field in row):
+                        data.append('|'.join(row))
+
+            if data:
+                print(f"Read {len(data)} data lines using encoding: {enc}")
+            else:
+                print(f"No data lines found using encoding: {enc}")
+            return data
+
+        except UnicodeDecodeError as e:
+            last_error = e
+            # try the next encoding
+            continue
+        except FileNotFoundError:
+            print(f'{filename} file does not exist.')
+            return []
+
+    # If all encodings failed due to decode issues
+    print(f"Failed to decode {filename} with tried encodings {encodings_to_try}. Last error: {last_error}")
+    return []
+
+# %%
+a = read_sales_data(file_path)
+
+# %%
+first_row = a[0].split('|') if a else []
+print(first_row)
+
+# %%
+def parse_transactions(raw_lines):
     data = []
-    try:
-        with open(filename, mode='r', encoding=file_encoder, newline='\n') as file:
-            file_content = csv.reader(file, delimiter='|')
-            header = next(file_content, None)
+    for line in raw_lines:
+        parts = [f.strip() for f in line.split('|')]
+        if len(parts) < 8:
+            continue  # Skip lines that don't have exactly 8 fields
+        t_id, dt, p_id, p_name, qty_raw, price_raw, c_id, region = parts[:8]
 
-            for row in file_content:
-                if row and any(field.strip() for field in row):
-                    data.append('|'.join(row))
-        return data
-
-    except UnicodeDecodeError:
-        print(f'{filename} file is not in UTF-8 encoding')
-        return data
-    except FileNotFoundError:
-        print(f'{filename} file does not exist.')
-        return data
-
-# %%
-BASE_DIR = Path.cwd().parent   # sales-analytics-system
-file_path = BASE_DIR / 'data' / 'sales_data.txt'
-
-# %%
-a = read_sales_data(file_path,'utf-8')
-
-# %%
-first_row = a[0].split('|')
-
-# %%
-first_row
-
-# %%
-def parse_transactions(raw_line):
-
-    data = []
-    for line in raw_line:
-        t_id, dt, p_id, p_name, qty_raw, price_raw, c_id, region = [f.strip() for f in line.split('|')]
-        
         # Handle commas within ProductName (replace commas with space)
-        p_name_clean = p_name.replace(",", " ").strip()
+        p_name_clean = (p_name or "").replace(",", " ").strip()
 
         # Remove commas from numeric fields (e.g., "45,000")
-        qty_clean = qty_raw.replace(",", "").strip()
-        price_clean = price_raw.replace(",", "").strip()
+        qty_clean = (qty_raw or "").replace(",", "").strip()
+        price_clean = (price_raw or "").replace(",", "").strip()
 
         try:
             qty = int(qty_clean)
@@ -81,16 +99,13 @@ def parse_transactions(raw_line):
                 "Region": region,
             }
         )
-
     return data
-
-# %%
-a
 
 # %%
 def validate_and_filter(transactions, region=None, min_amount=None, max_amount=None):
     """
-    Validates transactions and applies optional filters
+    Validates transactions and applies optional filters.
+    Returns: (valid_filtered, invalid_count, filter_summary)
     """
     required_fields = [
         "TransactionID", "Date", "ProductID", "ProductName",
@@ -145,10 +160,9 @@ def validate_and_filter(transactions, region=None, min_amount=None, max_amount=N
             invalid_count += 1
             continue
 
-        # Store normalized numeric values back (optional but helpful)
+        # Normalize numeric values
         txn["Quantity"] = qty
         txn["UnitPrice"] = price
-
         valid_transactions.append(txn)
 
     # --- Amount range print (computed from valid transactions) ---
@@ -173,7 +187,6 @@ def validate_and_filter(transactions, region=None, min_amount=None, max_amount=N
         print(f"After region filter ({region}): {len(current)} records")
 
     # --- Amount filters ---
-    # Compute amounts once for filtering
     def amount(t):
         return t["Quantity"] * t["UnitPrice"]
 
@@ -197,22 +210,19 @@ def validate_and_filter(transactions, region=None, min_amount=None, max_amount=N
         "filtered_by_amount": filtered_by_amount,
         "final_count": len(current)
     }
-
-    return current, filter_summary
-
-# %%
-first_row = parse_transactions(a)
+    return current, invalid_count, filter_summary
 
 # %%
+# Parse all transactions and validate/filter
 clean_data = parse_transactions(a)
 
-# %%
-clean_data, summary_data = validate_and_filter(clean_data,'North', 300, 5000)
+print("\nSample parsed transactions (Expected Output Format):")
+for txn in clean_data[:1]:  # show first 3 only
+    print(txn)
+
+clean_data, invalid_count, filter_summary = validate_and_filter(clean_data, 'North', 300, 5000)
 
 # %%
-summary_data
-
-# %%
-clean_data
-
-
+print("\nsummary_data")
+print(filter_summary)
+print("\ninvalid_count (as per spec):", invalid_count)
