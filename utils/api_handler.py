@@ -24,6 +24,8 @@ Requirements:
 - Print status message (success/failure)
 """
 
+## fetch all propducts
+
 import requests
 
 def fetch_all_products():
@@ -59,6 +61,8 @@ Expected Output Format:
     ...
 }
 """
+# create product mapping
+
 def create_product_mapping(api_products):
 
     product_map = {}
@@ -126,17 +130,20 @@ File Output:
 - Include new columns in header
 """
 
-import os
+# enrich sales data
+
+from pathlib import Path
 import re
 
 def enrich_sales_data(transactions, product_mapping):
 
     enriched = []
 
-    # Output file path
-    output_dir = "data"
-    output_file = os.path.join(output_dir, "enriched_sales_data.txt")
-    os.makedirs(output_dir, exist_ok=True)
+    # Output file path (reliable for .py execution)
+    project_root = Path(__file__).resolve().parent.parent
+    output_dir = project_root / "data"
+    output_dir.mkdir(parents=True, exist_ok=True)
+    output_file = output_dir / "enriched_sales_data.txt"
 
     # Columns for file output (pipe-delimited)
     base_cols = [
@@ -147,37 +154,34 @@ def enrich_sales_data(transactions, product_mapping):
     header_cols = base_cols + new_cols
 
     def extract_numeric_id(product_id):
-        # P101 -> 101, P5 -> 5, also handles "P-101" or "P101A" by extracting digits
         if product_id is None:
             return None
         m = re.search(r"(\d+)", str(product_id))
         return int(m.group(1)) if m else None
 
     for txn in transactions:
-        # Default enriched fields
         api_category = None
         api_brand = None
         api_rating = None
         api_match = False
 
-        try:
-            pid_num = extract_numeric_id(txn.get("ProductID"))
-            if pid_num is not None and pid_num in product_mapping:
-                info = product_mapping[pid_num]
+        pid_num = extract_numeric_id(txn.get("ProductID"))
+        if pid_num is not None:
+            info = product_mapping.get(pid_num)
+            if info:
                 api_category = info.get("category")
                 api_brand = info.get("brand")
                 api_rating = info.get("rating")
                 api_match = True
-        except Exception:
-            # Graceful handling: keep defaults (no match)
-            pass
 
-        # Build enriched transaction (do not mutate original)
+        # Build enriched transaction
         enriched_txn = dict(txn)
         enriched_txn["API_Category"] = api_category
         enriched_txn["API_Brand"] = api_brand
         enriched_txn["API_Rating"] = api_rating
         enriched_txn["API_Match"] = api_match
+
+        enriched.append(enriched_txn)
 
     def to_str(val):
         if val is None:
@@ -187,7 +191,7 @@ def enrich_sales_data(transactions, product_mapping):
         return str(val)
 
     try:
-        with open(output_file, "w", encoding="utf-8", newline="\n") as f:
+        with output_file.open("w", encoding="utf-8", newline="\n") as f:
             # Header
             f.write("|".join(header_cols) + "\n")
 
@@ -196,8 +200,10 @@ def enrich_sales_data(transactions, product_mapping):
                 line = "|".join(to_str(row.get(col)) for col in header_cols)
                 f.write(line + "\n")
 
-        print(f"Enriched data saved successfully to: {output_file}")
+        print(f"Enriched data saved successfully to: {output_file.resolve()}")
     except Exception as e:
         print(f"Failed to write enriched file: {e}")
+
+        print("Saving to:", output_file.resolve())
 
     return enriched

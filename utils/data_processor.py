@@ -1,9 +1,12 @@
-
-# utils/data_processor.py
+"""
+sales summary calculator
+"""
 
 import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+##Calculate total revenue
 
 def calculate_total_revenue(transactions):
     """
@@ -22,6 +25,7 @@ def calculate_total_revenue(transactions):
             continue
     return round(total_revenue, 2)
 
+## Region wise sales analysis
 
 def region_wise_sales(transactions):
     """
@@ -69,6 +73,7 @@ def region_wise_sales(transactions):
     )
     return sorted_region_stats
 
+## top selling products
 
 def top_selling_products(transactions, n=5):
     """
@@ -110,6 +115,7 @@ def top_selling_products(transactions, n=5):
     ]
     return top_n
 
+## customer purchase analysis
 
 def customer_analysis(transactions):
     """
@@ -170,6 +176,7 @@ def customer_analysis(transactions):
     )
     return sorted_customers
 
+## daily sales trend
 
 def daily_sales_trend(transactions):
     """
@@ -211,6 +218,7 @@ def daily_sales_trend(transactions):
     sorted_daily = dict(sorted(daily.items(), key=lambda x: x[0]))  # YYYY-MM-DD sorts lexicographically
     return sorted_daily
 
+## find peak sales day
 
 def find_peak_sales_day(transactions):
     """
@@ -245,6 +253,7 @@ def find_peak_sales_day(transactions):
     peak_date, peak_stats = max(daily.items(), key=lambda x: x[1]["revenue"])
     return (peak_date, round(peak_stats["revenue"], 2), peak_stats["transaction_count"])
 
+## low performing products
 
 def low_performing_products(transactions, threshold=10):
     """

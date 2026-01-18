@@ -1,14 +1,11 @@
+## **File Format:**
+    # - Pipe-delimited (`|`) format
+    # - Non-UTF-8 encoding (handle encoding issues)
+    # - Data quality issues (commas in fields, missing/extra fields, numeric commas, invalid data)
 
-# %% [markdown]
-# **File Format**
-# - Pipe-delimited (`|`) format
-# - Non-UTF-8 encoding (handle encoding issues)
-# - Data quality issues (commas in fields, missing/extra fields, numeric commas, invalid data)
 
-# %% [markdown]
-# #### Read Sales Data with Encoding Handling
+##Read Sales Data with Encoding Handling
 
-# %%
 import csv
 from pathlib import Path
 
@@ -19,7 +16,7 @@ CURRENT_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = CURRENT_DIR.parent
 file_path = PROJECT_ROOT / "data" / "sales_data.txt"
 
-# %%
+# read data with encoding handling
 def read_sales_data(filename):
     """
     Reads sales data handling encoding issues and skipping header/empty lines.
@@ -65,7 +62,8 @@ a = read_sales_data(file_path)
 first_row = a[0].split('|') if a else []
 print(first_row)
 
-# %%
+# Parse and clean data
+
 def parse_transactions(raw_lines):
     data = []
     for line in raw_lines:
@@ -101,7 +99,8 @@ def parse_transactions(raw_lines):
         )
     return data
 
-# %%
+## Data validation and filtering
+
 def validate_and_filter(transactions, region=None, min_amount=None, max_amount=None):
     """
     Validates transactions and applies optional filters.
